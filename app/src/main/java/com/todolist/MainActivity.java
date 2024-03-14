@@ -3,46 +3,89 @@ package com.todolist;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
-
-    // TAG 상수 추가
     private static final String TAG = "MainActivity";
 
-    // Fragment 변수 선언
     Fragment mainFragment;
+    EditText inputToDo;
+    Context context;
+
+    public static NoteDatabase noteDatabase = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Fragment 객체 할당
         mainFragment = new MainFragment();
 
-        // FragmentManager를 이용하여 FrameLayout에 Fragment 추가
+        //getSupportFragmentManager 을 이용하여 이전에 만들었던 **FrameLayout**에 `fragment_main.xml`이 추가
         getSupportFragmentManager().beginTransaction().replace(R.id.container, mainFragment).commit();
 
-        // saveButton 클릭 이벤트 설정
         Button saveButton = findViewById(R.id.saveButton);
         saveButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view){
-                // ToDo 저장 메서드 호출
+
                 saveToDo();
-                // Toast 메시지 출력
-                Toast.makeText(getApplicationContext(), "추가되었습니다.", Toast.LENGTH_SHORT).show();
+
+                Toast.makeText(getApplicationContext(),"추가되었습니다.",Toast.LENGTH_SHORT).show();
+
             }
         });
+        openDatabase();
+    }
+    private void saveToDo(){
+        inputToDo = findViewById(R.id.InputToDo);
+
+        //EditText에 적힌 글을 가져오기
+        String todo = inputToDo.getText().toString();
+
+        //테이블에 값을 추가하는 sql구문 insert...
+        String sqlSave = "insert into " + NoteDatabase.TABLE_NOTE + " (TODO) values (" +
+                "'" + todo + "')";
+
+        //sql문 실행
+        NoteDatabase database = NoteDatabase.getInstance(context);
+        database.execSQL(sqlSave);
+
+        //저장과 동시에 EditText 안의 글 초기화
+        inputToDo.setText("");
     }
 
-    // saveToDo 메서드 정의
-    private void saveToDo() {
-        // ToDo 저장 로직
-        // 데이터베이스 저장 로직은 여기에 구현 예정
+
+    public void openDatabase() {
+        // open database
+        if (noteDatabase != null) {
+            noteDatabase.close();
+            noteDatabase = null;
+        }
+
+        noteDatabase = NoteDatabase.getInstance(this);
+        boolean isOpen = noteDatabase.open();
+        if (isOpen) {
+            Log.d(TAG, "Note database is open.");
+        } else {
+            Log.d(TAG, "Note database is not open.");
+        }
     }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if (noteDatabase != null) {
+            noteDatabase.close();
+            noteDatabase = null;
+        }
+    }
+
+
 }
